@@ -1,0 +1,5 @@
+README.md
+Setup.hs
+my-project.cabal
+src/Main.hs
+stack.yaml
