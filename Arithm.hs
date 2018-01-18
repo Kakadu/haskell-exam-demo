@@ -1,6 +1,7 @@
 module Arithm where
 
 import Text.Parsec
+import Text.Parsec.Expr
 import Data.Char (digitToInt)
 import Text.Parsec.Expr
 import ULC (stringConst)
@@ -24,6 +25,7 @@ decimal = do
   let n = foldl (\acc d -> 10*acc + digitToInt d) 0 digits
   seq n (return $ Const n)
 
+parser :: Parsec String a Term
 parser =  buildExpressionParser table (spaces *> decimal <* spaces)
           <?> "aithmetic expression"
 
@@ -33,3 +35,6 @@ table =
   ]
 
 binary name fun assoc = Infix (do{ stringConst name; return fun }) assoc
+
+parse :: String -> Either ParseError Term
+parse = runParser parser [] "untyped λ-calculus"

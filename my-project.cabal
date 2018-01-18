@@ -18,8 +18,9 @@ executable my-project
   build-depends:       base >= 4.7 && < 5, parsec, text
 
 Test-Suite test-arithm
-  hs-source-dirs: .,test
+  hs-source-dirs: .
   type:          exitcode-stdio-1.0
   main-is:       tests/test-arithm.hs
   other-modules: Arithm,ULC
-  build-depends: base,  parsec, text
+  build-depends: base,  parsec, text, HUnit
+  --, tasty, tasty-hunit
