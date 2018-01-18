@@ -23,7 +23,8 @@ data Term =
   deriving (Show)
 
 ops :: Ops Term
-ops = Record  { abs  = const TmAbs
+ops = TermConstruction
+              { abs  = const TmAbs
               , var  = const TmVar
               , app  = const TmApp
               , reset = const TmReset

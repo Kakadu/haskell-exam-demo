@@ -1,2 +1,5 @@
+2*(reset (1+ (shift k (k 5)) ))
+2*(reset (1+(shift k (k 5))))
+(shift k 5)
 (\x . \y . x + y)
 1+2*3

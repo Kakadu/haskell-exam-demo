@@ -23,4 +23,10 @@ Test-Suite test-arithm
   main-is:       tests/test-arithm.hs
   other-modules: Arithm,ULC
   build-depends: base,  parsec, text, HUnit
-  --, tasty, tasty-hunit
+
+Test-Suite test-delimcc
+  hs-source-dirs: .
+  type:          exitcode-stdio-1.0
+  main-is:       tests/test-delimcc.hs
+  other-modules: Arithm,ULC
+  build-depends: base, parsec, text, HUnit

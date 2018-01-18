@@ -25,7 +25,7 @@ type BoundContext = [String]
 type LCParser rez = Parsec String BoundContext rez
 
 parseVarName :: Parsec String u String
-parseVarName = many1 $ letter <|> char '\''
+parseVarName = many1 $ letter -- <|> char '\''
 
 stringConst :: String -> Parsec String u ()
 stringConst [] = return ()
@@ -34,7 +34,7 @@ stringConst (c:cs) = do
   stringConst cs
 
 data BinOpSort = Mul | Add deriving Show
-data Ops a = Record
+data Ops a = TermConstruction
   { app   :: Info -> a -> a -> a
   , abs   :: Info -> String -> a  -> a
   , int   :: Info -> Int -> a
@@ -44,41 +44,33 @@ data Ops a = Record
   , binop :: BinOpSort -> a -> a -> a
   }
 
-parseVar :: Ops a -> LCParser a
-parseVar ops = do
-  v <- parseVarName
-  list <- getState
-  findVar v list
-  where
-    --findVar :: String -> BoundContext -> LCParser a
-    findVar v list = case elemIndex v list of
-      Nothing -> fail $ "The variable " ++ v ++ " has not been bound"
-      Just n  -> do
-        pos <- getPosition
-        return $ var ops (infoFrom pos) v
+-- parseVar :: Ops a -> LCParser a
+-- parseVar ops = do
+--   v <- parseVarName
+--   list <- getState
+--   findVar v list
+--   where
+--     --findVar :: String -> BoundContext -> LCParser a
+--     findVar v list = case elemIndex v list of
+--       Nothing -> fail $ "The variable " ++ v ++ " has not been bound"
+--       Just n  -> do
+--         pos <- getPosition
+--         return $ var ops (infoFrom pos) v
 
-parseAbs :: Ops a -> LCParser a
-parseAbs ops = do
-  char '\\' <|> char 'λ'
-  v <- parseVarName
-  modifyState (v :)
-  char '.'
-  term <- parseTerm ops
-  modifyState tail
-  pos <- getPosition
-  return $ abs ops (infoFrom pos) v term
+-- parseAbs :: Ops a -> LCParser a
+-- parseAbs ops = do
+--   char '\\' <|> char 'λ'
+--   v <- parseVarName
+--   modifyState (v :)
+--   char '.'
+--   term <- parseTerm ops
+--   modifyState tail
+--   pos <- getPosition
+--   return $ abs ops (infoFrom pos) v term
 
 parens :: Parsec String u a -> Parsec String u a
 parens = between (char '(') (char ')')
 
-parseReset :: Ops a -> LCParser a
-parseReset ops = do
-  space
-  stringConst "reset"
-  space
-  t <- parseTerm ops
-  pos <- getPosition
-  return $ reset ops (infoFrom pos) t
 
 decimal :: Ops a -> LCParser a
 decimal ops = do
@@ -87,26 +79,26 @@ decimal ops = do
   let n = foldl (\acc d -> 10*acc + digitToInt d) 0 digits
   seq n (return $ int ops (infoFrom pos) n)
 
-parseTerm :: Ops a -> LCParser a
-parseTerm ops =
-  chainl1 parseNonApp $ do
-    space
-    pos <- getPosition
-    return $ app ops (infoFrom pos)
-  where
-    --parseNonApp :: LCParser a
-    parseNonApp = parens (parseTerm ops) -- (M)
-               <|> parseAbs ops          -- λx.M
-               <|> parseVar ops          -- x
-               <|> parseReset ops        -- reset T
-               <|> decimal ops           -- 5
-               <|> root ops
+-- parseTerm :: Ops a -> LCParser a
+-- parseTerm ops =
+--   chainl1 parseNonApp $ do
+--     space
+--     pos <- getPosition
+--     return $ app ops (infoFrom pos)
+--   where
+--     --parseNonApp :: LCParser a
+--     parseNonApp = parens (parseTerm ops) -- (M)
+--                <|> parseAbs ops          -- λx.M
+--                <|> parseVar ops          -- x
+--                <|> parseReset ops        -- reset T
+--                <|> decimal ops           -- 5
+--                <|> root ops
 
 parseWith :: Parsec String [u] a -> String -> Either ParseError a
 parseWith p = runParser p [] "untyped λ-calculus"
 
-parse :: Ops a -> String -> Either ParseError a
-parse ops = parseWith $ parseTerm ops
+-- parse :: Ops a -> String -> Either ParseError a
+-- parse ops = parseWith $ parseTerm ops
 -- --------------------------------------
 parse2 ops = parseWith $ root ops
 
@@ -115,6 +107,8 @@ root ops =  buildExpressionParser (table ops) (spaces *> (term ops) <* spaces)
             <?> "expression"
   where
     term ops =  parens (root ops)  -- (M)
+            <|> parseReset ops     -- reset T
+            <|> parseCallCC ops    -- call k T or shift k T
             <|> parseAbs ops       -- λx.M
             <|> parseVar ops       -- x
             <|> decimal ops        -- 5
@@ -129,6 +123,27 @@ root ops =  buildExpressionParser (table ops) (spaces *> (term ops) <* spaces)
       modifyState tail
       pos <- getPosition
       return $ abs ops (infoFrom pos) v term
+
+    parseCallCC ops = do
+      spaces
+      stringConst "shift"
+      spaces
+      v <- parseVarName
+      modifyState (v :)
+      spaces
+      t <- term ops
+      pos <- getPosition
+      return $ call ops (infoFrom pos) v t
+
+    --parseReset :: Ops a -> LCParser a
+    parseReset ops = do
+      spaces
+      stringConst "reset"
+      spaces
+      t <- term ops
+      pos <- getPosition
+      return $ reset ops (infoFrom pos) t
+
     parseVar :: Ops a -> LCParser a
     parseVar ops = do
       v <- parseVarName

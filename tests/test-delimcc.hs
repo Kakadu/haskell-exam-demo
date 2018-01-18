@@ -1,6 +1,7 @@
 module Main where
 
-import Arithm (eval, parse)
+import EvalDelimCC (eval, parse)
+import System.IO.Unsafe
 import Test.HUnit
 import Data.Either
 import System.Exit
@@ -8,14 +9,15 @@ import System.Exit
 test1 name str expected =
   TestLabel name $ TestList [c1,c2]
   where
-    rez = Arithm.parse str
+    _  = unsafePerformIO (print rez)
+    rez = parse str
     c1 = TestCase (assertBool "parsable" (isRight rez))
     (Right tree) = rez
-    c2 = TestCase (assertEqual "parsable" (Arithm.eval tree) expected)
+    c2 = TestCase (assertEqual "parsable" (eval tree) expected)
 
 tests = TestList
-  [ test1 "test1" "1+2*3" 7
-  , test1 "test2" "5*3" 15
+  [ test1 "test1" "1+2*3" (Just 42)
+  , test1 "test2" "5*3"  (Just 42)
   ]
 
 main = do
