@@ -1,11 +1,16 @@
 module Main where
 
 import Prelude hiding (abs)
-import Data.String.Utils
+import Data.Text as T (unpack, stripEnd, pack, split)
 import Control.Monad
 import System.Exit
 import System.Environment
 import ULC
+
+rstrip = T.unpack . T.stripEnd . T.pack
+splitStr c s = map T.unpack xs
+  where
+    xs = T.split ((==)c) (T.pack s)
 
 data Term =
     TmVar  String
@@ -34,7 +39,7 @@ main = do
     case args of
       [file_name] -> rstrip <$> readFile file_name
       _      -> putStrLn "File not specified" >> exitFailure
-  let lines = split "\n" text
+  let lines = splitStr '\n' text
   print lines
   print $ map (ULC.parse2 ops) lines
   exitSuccess
