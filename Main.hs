@@ -41,8 +41,8 @@ main = do
       [file_name] -> rstrip <$> readFile file_name
       _      -> putStrLn "File not specified" >> exitFailure
   let lines = splitStr '\n' text
-  print lines
-  print $ map (ULC.parse2 ops) lines
+  --print lines
+  mapM_ (\line -> print line >> print (ULC.parse2 ops line)) lines
   exitSuccess
 
 

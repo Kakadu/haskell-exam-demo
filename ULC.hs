@@ -10,12 +10,6 @@ import Text.Parsec.Token (reservedOp)
 import Text.Parsec.Combinator (between, sepBy1, chainr1)
 import Data.List (elemIndex)
 
--- data Term =
---     TmVar Info Int Int
---   | TmAbs Info String Term
---   | TmApp Info Term Term
---   deriving (Show)
-
 data Info = Info { row :: Int, col :: Int } deriving (Show)
 
 infoFrom :: SourcePos -> Info
@@ -103,50 +97,58 @@ parseWith p = runParser p [] "untyped λ-calculus"
 parse2 ops = parseWith $ root ops
 
 
-root ops =  buildExpressionParser (table ops) (spaces *> (term ops) <* spaces)
+root ops =  buildExpressionParser (table ops) (spaces *> (apps ops) <* spaces)
             <?> "expression"
   where
-    term ops =  parens (root ops)  -- (M)
+    apps ops = chainl1 (parseNonApp ops) $ do
+      spaces
+      pos <- getPosition
+      return $ app ops (infoFrom pos)
+
+    parseNonApp ops =
+                parens (spaces *> (root ops) <* spaces)  -- (M)
             <|> parseReset ops     -- reset T
             <|> parseCallCC ops    -- call k T or shift k T
             <|> parseAbs ops       -- λx.M
             <|> parseVar ops       -- x
-            <|> decimal ops        -- 5
+            <|> (spaces *> (decimal ops) <* spaces)   -- 5
     parseAbs ops = do
+      spaces
       char '\\' <|> char 'λ'
       v <- parseVarName
       modifyState (v :)
       spaces
       char '.'
       spaces
-      term <- root ops
+      t <- root ops
       modifyState tail
       pos <- getPosition
-      return $ abs ops (infoFrom pos) v term
+      return $ abs ops (infoFrom pos) v t
 
     parseCallCC ops = do
-      spaces
       stringConst "shift"
       spaces
       v <- parseVarName
       modifyState (v :)
       spaces
-      t <- term ops
+      t <- root ops
+      modifyState tail
       pos <- getPosition
       return $ call ops (infoFrom pos) v t
 
-    --parseReset :: Ops a -> LCParser a
     parseReset ops = do
       spaces
       stringConst "reset"
       spaces
-      t <- term ops
+      t <- root ops
       pos <- getPosition
       return $ reset ops (infoFrom pos) t
 
     parseVar :: Ops a -> LCParser a
     parseVar ops = do
+      spaces
       v <- parseVarName
+      spaces
       list <- getState
       findVar v list
       where
@@ -162,6 +164,4 @@ table ops =
   , [binary "+" (binop ops Add) AssocLeft ]
   ]
 
-binary name fun assoc = Infix (do{ stringConst name; return fun }) assoc
---prefix  name fun       = Prefix (do{ reservedOp name; return fun })
---postfix name fun       = Postfix (do{ reservedOp name; return fun })
+binary name fun assoc = Infix (do{ spaces *> (stringConst name); return fun }) assoc
