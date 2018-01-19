@@ -11,7 +11,6 @@ import Text.Parsec.Combinator (between, sepBy1, chainr1)
 import Data.List (elemIndex)
 
 data Info = Info { row :: Int, col :: Int } deriving (Show)
-
 infoFrom :: SourcePos -> Info
 infoFrom pos = Info (sourceLine pos) (sourceColumn pos)
 
@@ -38,33 +37,8 @@ data Ops a = TermConstruction
   , binop :: BinOpSort -> a -> a -> a
   }
 
--- parseVar :: Ops a -> LCParser a
--- parseVar ops = do
---   v <- parseVarName
---   list <- getState
---   findVar v list
---   where
---     --findVar :: String -> BoundContext -> LCParser a
---     findVar v list = case elemIndex v list of
---       Nothing -> fail $ "The variable " ++ v ++ " has not been bound"
---       Just n  -> do
---         pos <- getPosition
---         return $ var ops (infoFrom pos) v
-
--- parseAbs :: Ops a -> LCParser a
--- parseAbs ops = do
---   char '\\' <|> char 'λ'
---   v <- parseVarName
---   modifyState (v :)
---   char '.'
---   term <- parseTerm ops
---   modifyState tail
---   pos <- getPosition
---   return $ abs ops (infoFrom pos) v term
-
 parens :: Parsec String u a -> Parsec String u a
 parens = between (char '(') (char ')')
-
 
 decimal :: Ops a -> LCParser a
 decimal ops = do
@@ -72,21 +46,6 @@ decimal ops = do
   pos <- getPosition
   let n = foldl (\acc d -> 10*acc + digitToInt d) 0 digits
   seq n (return $ int ops (infoFrom pos) n)
-
--- parseTerm :: Ops a -> LCParser a
--- parseTerm ops =
---   chainl1 parseNonApp $ do
---     space
---     pos <- getPosition
---     return $ app ops (infoFrom pos)
---   where
---     --parseNonApp :: LCParser a
---     parseNonApp = parens (parseTerm ops) -- (M)
---                <|> parseAbs ops          -- λx.M
---                <|> parseVar ops          -- x
---                <|> parseReset ops        -- reset T
---                <|> decimal ops           -- 5
---                <|> root ops
 
 parseWith :: Parsec String [u] a -> String -> Either ParseError a
 parseWith p = runParser p [] "untyped λ-calculus"
