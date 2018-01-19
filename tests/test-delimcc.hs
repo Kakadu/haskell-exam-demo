@@ -16,8 +16,11 @@ test1 name str expected =
     c2 = TestCase (assertEqual "parsable" (eval tree) expected)
 
 tests = TestList
-  [ test1 "test1" "1+2*3" (Just 42)
-  , test1 "test2" "5*3"  (Just 42)
+  [ test1 "test1" "(reset (reset 42))"               (Just 42)
+  , test1 "test2" "(reset (shift k 42))"             (Just 42)
+  , test1 "test3" "(reset (2*(shift k 21)))"         (Just 42)
+  -- next demo from Wiki
+  , test1 "test4" "2*(reset (1+(shift k (k 20))))"   (Just 42)
   ]
 
 main = do
