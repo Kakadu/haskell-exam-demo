@@ -4,7 +4,7 @@ import PMParser (parseScrutinee, parseCase)
 import Test.HUnit
 import Data.Either
 import System.Exit
-import PMEval --(opsE, opsP, eval, EvalRez)
+import PMEval
 
 test1 name what casesS expected =
   TestLabel name $ TestList $ [c1] ++ c2 ++ [c3]
